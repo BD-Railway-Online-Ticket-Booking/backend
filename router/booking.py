@@ -1,0 +1,63 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+from models import BookingLog,Seat,Train
+from schemas import AvailSeat
+from datetime import date,time, timedelta
+from redis_cache import cache
+import json
+
+router = APIRouter(tags=["booking"], prefix="/booking")
+@router.get("/train/available/{id}")
+def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
+   
+    cached_key = f"available_seats_{id}_{date}"
+
+    
+    cached_seats_json = cache.get(cached_key)
+
+    if cached_seats_json:
+        print("Cache hit")
+        cached_seats = json.loads(cached_seats_json)
+        return cached_seats
+    else:
+        print("Cache miss")
+        train = db.query(Train).filter(Train.id == id).first()
+        if train:
+            seats = train.seats
+            available = []
+            for seat in seats:
+                booking_log = db.query(BookingLog).filter(BookingLog.date == date, BookingLog.seat_id == seat.id).first()
+                if booking_log:
+                    available.append(AvailSeat(id=seat.id, type=seat.type, price=seat.price, available=booking_log.available))
+                else:
+                    booking_log = BookingLog(date=date, seat_id=seat.id, available=seat.capacity, booked=0)
+                    db.add(booking_log)
+                    db.commit()
+                    db.refresh(booking_log)
+                    available.append(AvailSeat(id=seat.id, type=seat.type, price=seat.price, available=booking_log.available))
+
+            available_json = json.dumps([a.model_dump() for a in available])
+
+            cache.set(cached_key, available_json)
+            cache.expire(cached_key, timedelta(seconds=15))
+
+            return available
+        else:
+            raise HTTPException(status_code=404, detail="Train Not Found")
+        
+
+
+@router.put("/booking/seat/{id}")
+def book_seat(id:int,date:date,count:int,db:Session=Depends(get_db)):
+    booking_log=db.query(BookingLog).filter(BookingLog.seat_id==id,BookingLog.date==date).first()
+    if booking_log:
+        if booking_log.available>0:
+            booking_log.available-=count
+            booking_log.booked+=count
+            db.commit()
+            return HTTPException(status_code=200,detail="Seat Booked Successfully")
+        else:
+            return HTTPException(status_code=400,detail="Seat Not Available")
+    else:
+        return HTTPException(status_code=404,detail="Booking Log Not Found")
