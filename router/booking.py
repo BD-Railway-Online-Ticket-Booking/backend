@@ -8,6 +8,7 @@ from redis_cache import cache
 import json
 
 router = APIRouter(tags=["booking"], prefix="/booking")
+
 @router.get("/train/available/{id}")
 def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
    
@@ -48,15 +49,28 @@ def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
         
 
 
-@router.put("/booking/seat/{id}")
+@router.put("/booking/seat/{id}",status_code=200)
 def book_seat(id:int,date:date,count:int,db:Session=Depends(get_db)):
     booking_log=db.query(BookingLog).filter(BookingLog.seat_id==id,BookingLog.date==date).first()
     if booking_log:
         if booking_log.available>0:
+            seat_numbers =[]
+            for i in range(count):
+                seat_numbers.append(booking_log.booked+i+1)
+
+                seat_name = booking_log.seat.name
+
+                train_name = booking_log.seat.train.name
+
             booking_log.available-=count
             booking_log.booked+=count
             db.commit()
-            return HTTPException(status_code=200,detail="Seat Booked Successfully")
+            
+            return {
+                "seat_name":seat_name,
+                "train_name":train_name,
+                "seat_numbers":seat_numbers
+            }
         else:
             return HTTPException(status_code=400,detail="Seat Not Available")
     else:

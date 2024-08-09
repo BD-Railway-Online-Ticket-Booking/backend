@@ -1,6 +1,6 @@
 from datetime import timedelta
 from fastapi import APIRouter
-from schemas import SeatSchemaIn,SeatSchemaOut, TrainSchemaIn, TrainSchemaOut, TrainRouteSchema2,pathsh2
+from schemas import SeatSchemaIn,SeatSchemaOut, TrainSchemaIn, TrainSchemaOut, TrainRouteSchema2,PathSh2
 from models import Route, Train, Seat
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
@@ -10,7 +10,7 @@ import json
 
 router = APIRouter(tags=["train"], prefix="/train")
 
-@router.post("/add")
+@router.post("/")
 def add_train(trainSchema: TrainSchemaIn, db: Session = Depends(get_db)):
     train = Train(name=trainSchema.name)
 
@@ -20,7 +20,7 @@ def add_train(trainSchema: TrainSchemaIn, db: Session = Depends(get_db)):
     return HTTPException(status_code=200, detail="Train Added Successfully")
 
 
-@router.get("/get/all")
+@router.get("/all")
 def get_all_train(db: Session = Depends(get_db)):
     cached_key = f"train_all"
     cached_train_json = cache.get(cached_key)
@@ -56,7 +56,7 @@ def get_all_train(db: Session = Depends(get_db)):
     return trains
 
 
-@router.get("/get/{id}")
+@router.get("/{id}")
 def get_train(id: int, db: Session = Depends(get_db)):
     cached_key = f"train_{id}"
     cached_train_json = cache.get(cached_key)
@@ -86,7 +86,7 @@ def get_train(id: int, db: Session = Depends(get_db)):
         else:
             raise HTTPException(status_code=404, detail="Train not found")
 
-@router.delete("/delete/{id}")
+@router.delete("/{id}")
 def delete_train(id: int, db: Session = Depends(get_db)):
     train = db.query(Train).filter(Train.id == id).first()
     routes = db.query(Route).filter(Route.train_id == id).all()
@@ -99,7 +99,7 @@ def delete_train(id: int, db: Session = Depends(get_db)):
         return HTTPException(status_code=404, detail="Train Not Found")
 
 
-@router.post("/add/seat/{id}")
+@router.post("/seat/{id}")
 def add_seat(id: int, seatSchema: SeatSchemaIn, db: Session = Depends(get_db)):
     train = db.query(Train).filter(Train.id == id).first()
     if train:
@@ -118,7 +118,7 @@ def add_seat(id: int, seatSchema: SeatSchemaIn, db: Session = Depends(get_db)):
         return HTTPException(status_code=404, detail="Train Not Found")
 
 
-@router.delete("/delete/seat/{id}")
+@router.delete("/seat/{id}")
 def delete_seat(id: int, db: Session = Depends(get_db)):
     seat = db.query(Seat).filter(Seat.id == id).first()
     if seat:
@@ -128,10 +128,10 @@ def delete_seat(id: int, db: Session = Depends(get_db)):
     else:
         return HTTPException(status_code=404, detail="Seat Not Found")
 
-@router.get("/route/{id}")
-def get_route(id: int, db: Session = Depends(get_db)):
+@router.get("/{train_id}/route")
+def get_route(train_id:int, dflag:int, db: Session = Depends(get_db)):
     # Create a unique cache key based on the endpoint and parameters
-    cached_key = f"route_{id}"
+    cached_key = f"route_{train_id}_{dflag}"
 
     # Try to get the response from the cache
     cached_route_json = cache.get(cached_key)
@@ -142,23 +142,25 @@ def get_route(id: int, db: Session = Depends(get_db)):
         return cached_route
     else:
         print("Cache miss")
-        route = db.query(Route).filter(Route.train_id == id).first()
-        train = db.query(Train).filter(Train.id == id).first()
+        route = db.query(Route).filter(Route.train_id == train_id,Route.dflag==dflag).first()
+        train = db.query(Train).filter(Train.id == train_id).first()
         trainroute = TrainRouteSchema2(train_id=train.id, train_name=train.name, path=[])
         trace_set = set()
 
         if route:
-            trainroute.path.append(pathsh2(source_name=route.source.name, destination_name=route.destination.name, distance=route.distance))
+            trainroute.path.append(PathSh2(source_name=route.source.name, destination_name=route.destination.name, distance=route.distance))
             cur_source = route.destination.id
             trace_set.add(cur_source)
             while True:
-                cur_route = db.query(Route).filter(Route.source_id == cur_source, Route.train_id == id).first()
-                if cur_route.destination.id in trace_set:   
-                    break
+                cur_route = db.query(Route).filter(Route.source_id == cur_source, Route.train_id == train_id,Route.dflag==dflag).first()
                 if cur_route:
-                    trainroute.path.append(pathsh2(source_name=cur_route.source.name, destination_name=cur_route.destination.name, distance=cur_route.distance))
+                    trainroute.path.append(PathSh2(source_name=cur_route.source.name, destination_name=cur_route.destination.name, distance=cur_route.distance))
                 else:
                     break
+
+                if cur_route.destination.id in trace_set:   
+                    break
+                
                 cur_source = cur_route.destination.id
                 trace_set.add(cur_source)
 

@@ -13,25 +13,8 @@ router = APIRouter(
     prefix="/route"
 )
 
-@router.post("/add/place")
-def add_place(placeSchema: PlaceSchemaIn, db: Session = Depends(get_db)):
-    place = Place(name = placeSchema.name)
-    db.add(place)
-    db.commit()
-    db.refresh(place)
-    return HTTPException(status_code=200, detail="Place Added Successfully")
 
-@router.delete("/delete/place/{id}")
-def delete_place(id:int, db: Session = Depends(get_db)):
-    place = db.query(Place).filter(Place.id == id).first()
-    routes = db.query(Route).filter(Route.source_id == id | Route.destination_id==id).all()
-    if place:
-        db.delete(place)
-        db.commit()
-        return HTTPException(status_code=200, detail="Place Deleted Successfully")
-    else:
-        return HTTPException(status_code=404, detail="Place Not Found")
-@router.post("/add")
+@router.post("/")
 def add_route(routeSchema: RouteSchemaIn, db: Session = Depends(get_db)):
     route = Route(**routeSchema.model_dump())
     db.add(route)
@@ -44,7 +27,7 @@ def time_to_str(obj):
         return obj.strftime("%H:%M:%S")
     raise TypeError("Type not serializable")
 
-@router.get("/get/{id}", response_model=RouteSchemaOut)
+@router.get("/{id}", response_model=RouteSchemaOut)
 def get_route(id: int, db: Session = Depends(get_db)):
    
     cached_key = f"route_{id}"

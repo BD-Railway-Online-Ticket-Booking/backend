@@ -1,6 +1,6 @@
 from typing import List
 from database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, LargeBinary, String, ForeignKey
 from sqlalchemy.sql.sqltypes import Time, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import relationship
@@ -40,6 +40,7 @@ class Route(Base):
     leavetime = Column(Time, nullable=False)
     reachtime = Column(Time, nullable=False)
     train_id = Column(Integer, ForeignKey("trains.id"))
+    dflag = Column(Integer, nullable=False)
     train = relationship("Train", foreign_keys=[train_id])
     
 class BookingLog(Base):
@@ -50,3 +51,23 @@ class BookingLog(Base):
     seat = relationship("Seat", foreign_keys=[seat_id])
     available = Column(Integer, nullable=False)
     booked= Column(Integer, nullable=False)
+
+class User(Base):
+        __tablename__ = "users"
+        id = Column(Integer, primary_key=True, index=True)
+        name = Column(String, nullable=False)
+        email = Column(String, nullable=False, unique=True)
+        password = Column(String, nullable=False)
+        role = Column(String, nullable=False)
+        img_data = Column(LargeBinary, nullable=True)
+        nid = Column(String, nullable=False)
+        location = Column(String, nullable=False)
+        phone = Column(String, nullable=False)
+
+
+class PasswordCode(Base):
+    __tablename__ = "password_codes"
+    email = Column(String, primary_key=True, index=True)
+    code = Column(String, nullable=False)
+   
+    

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Route
-from schemas import TrainRouteSchema1, pathsh1
+from schemas import TrainRouteSchema1, PathSh1
 from datetime import datetime, time
 
 router = APIRouter(tags=["path"], prefix="/path")
@@ -37,7 +37,7 @@ def time_to_str(obj):
         return obj.strftime("%H:%M:%S")
     raise TypeError("Type not serializable")
 
-@router.get("/get/{source_id}/{destination_id}", response_model=List[TrainRouteSchema1])
+@router.get("/{source_id}/{destination_id}", response_model=List[TrainRouteSchema1])
 def get_path(
     source_id: int,
     destination_id: int,
@@ -69,7 +69,7 @@ def get_path(
             )
             
             current_route.path.append(
-                pathsh1(
+                PathSh1(
                     source_name=route.source.name,
                     destination_name=route.destination.name,
                     distance=route.distance,
@@ -99,7 +99,7 @@ def get_path(
                     break
 
                 current_route.path.append(
-                    pathsh1(
+                    PathSh1(
                         source_name=next_route.source.name,
                         destination_name=next_route.destination.name,
                         distance=next_route.distance,

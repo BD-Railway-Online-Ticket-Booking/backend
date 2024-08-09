@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import BaseModel
 from datetime import date, datetime, time
-
+import base64
 
 class SeatSchemaOut(BaseModel):
     id: int
@@ -45,6 +45,13 @@ class PlaceSchemaIn(BaseModel):
     class Config:
         orm_mode = True
 
+class PlaceSchemaOut(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        orm_mode = True
+
 
 class RouteSchemaIn(BaseModel):
     source_id: int
@@ -68,7 +75,7 @@ class RouteSchemaOut(BaseModel):
         orm_mode = True
 
 
-class pathsh1(BaseModel):
+class PathSh1(BaseModel):
     source_name: str
     destination_name: str
     distance: int
@@ -78,7 +85,7 @@ class pathsh1(BaseModel):
     class Config:
         orm_mode = True
 
-class pathsh2(BaseModel):
+class PathSh2(BaseModel):
     source_name:str
     destination_name:str
     distance:int
@@ -89,7 +96,7 @@ class pathsh2(BaseModel):
 class TrainRouteSchema1(BaseModel):
     train_id: int
     train_name: str
-    path: List[pathsh1]
+    path: List[PathSh1]
 
     class Config:
         orm_mode = True
@@ -97,7 +104,7 @@ class TrainRouteSchema1(BaseModel):
 class TrainRouteSchema2(BaseModel):
     train_id: int
     train_name: str
-    path: List[pathsh2]
+    path: List[PathSh2]
 
     class Config:
         orm_mode = True
@@ -108,6 +115,68 @@ class AvailSeat(BaseModel):
     type: str
     price: int
     available: int
+
+    class Config:
+        orm_mode = True
+
+
+class UserSignUp(BaseModel):
+    name: str
+    email: str
+    role:str
+    img_data: bytes
+    password: str
+    nid:str
+    location:str
+    phone:str
+    
+    class Config:
+        orm_mode = True
+
+class UserSignIn(BaseModel):
+    email: str
+    password: str
+
+    class Config:
+        orm_mode = True
+
+
+class UserSchema(BaseModel):
+    id: int
+    name: str
+    password: str
+    email: str
+    role: str
+    nid:str
+    location:str 
+    phone:str
+    img_data: bytes
+
+    class Config:
+        orm_mode = True
+
+class PasswordCodeSchema(BaseModel):
+    email: str
+    code: str
+
+    class Config:
+        orm_mode = True
+        
+class ResetPasswordSchema(BaseModel):
+    email: str
+    password: str
+
+    class Config:
+        orm_mode = True
+
+
+class TrainPlaceSchemaOut(BaseModel):
+    id:int 
+    name:str
+    incoming_arrival:time
+    outgoing_arrival:time
+    incoming_departure:time
+    outgoing_departure:time
 
     class Config:
         orm_mode = True
