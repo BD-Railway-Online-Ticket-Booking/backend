@@ -49,6 +49,7 @@ class BookingLog(Base):
     date = Column(Date, nullable=False)
     seat_id = Column(Integer, ForeignKey("seats.id"))
     seat = relationship("Seat", foreign_keys=[seat_id])
+    dflag = Column(Integer, nullable=False)
     available = Column(Integer, nullable=False)
     booked= Column(Integer, nullable=False)
 

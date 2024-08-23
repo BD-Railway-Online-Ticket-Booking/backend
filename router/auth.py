@@ -88,7 +88,7 @@ def signin(userSignIn:schemas.UserSignIn, db:Session = Depends(db.get_db)):
                                                     "role":user.role,
                                                     "name":user.name})
     
-    return {"id":user.id,"access_token":access_token, "token_type":"bearer", "role":user.role}
+    return {"id":user.id,"access_token":access_token, "token_type":"bearer", "email":user.email, "role":user.role, "name":user.name}
 
 
 @router.post("/forget_password", status_code=status.HTTP_200_OK)
@@ -119,7 +119,7 @@ def confirmPassword(codeSchema:schemas.PasswordCodeSchema,db:Session= Depends(db
 @router.post("/reset_password")
 def reset_password(resetPassword:schemas.ResetPasswordSchema, db:Session = Depends(db.get_db)):
     user = db.query(models.User).filter(models.User.email == resetPassword.email).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

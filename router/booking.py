@@ -9,10 +9,10 @@ import json
 
 router = APIRouter(tags=["booking"], prefix="/booking")
 
-@router.get("/train/available/{id}")
-def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
+@router.get("/train/{train_id}/available/seats")
+def get_available_seats(train_id: int,dflag:int, date: date, db: Session = Depends(get_db)):
    
-    cached_key = f"available_seats_{id}_{date}"
+    cached_key = f"available_seats_{train_id}_{date}_{dflag}"
 
     
     cached_seats_json = cache.get(cached_key)
@@ -23,16 +23,16 @@ def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
         return cached_seats
     else:
         print("Cache miss")
-        train = db.query(Train).filter(Train.id == id).first()
+        train = db.query(Train).filter(Train.id == train_id).first()
         if train:
             seats = train.seats
             available = []
             for seat in seats:
-                booking_log = db.query(BookingLog).filter(BookingLog.date == date, BookingLog.seat_id == seat.id).first()
-                if booking_log:
+                booking_log = db.query(BookingLog).filter(BookingLog.date == date, BookingLog.seat_id == seat.id,BookingLog.dflag==dflag).first()
+                if (booking_log and booking_log.available>0):
                     available.append(AvailSeat(id=seat.id, type=seat.type, price=seat.price, available=booking_log.available))
                 else:
-                    booking_log = BookingLog(date=date, seat_id=seat.id, available=seat.capacity, booked=0)
+                    booking_log = BookingLog(date=date, seat_id=seat.id, available=seat.capacity, booked=0,dflag=dflag)
                     db.add(booking_log)
                     db.commit()
                     db.refresh(booking_log)
@@ -49,16 +49,16 @@ def get_available_seats(id: int, date: date, db: Session = Depends(get_db)):
         
 
 
-@router.put("/booking/seat/{id}",status_code=200)
-def book_seat(id:int,date:date,count:int,db:Session=Depends(get_db)):
-    booking_log=db.query(BookingLog).filter(BookingLog.seat_id==id,BookingLog.date==date).first()
+@router.put("/seat/{id}",status_code=200)
+def book_seat(id:int,dflag:int,date:date,count:int,db:Session=Depends(get_db)):
+    booking_log=db.query(BookingLog).filter(BookingLog.seat_id==id,BookingLog.date==date,BookingLog.dflag==dflag).first()
     if booking_log:
-        if booking_log.available>0:
+        if booking_log.available>=count:
             seat_numbers =[]
             for i in range(count):
                 seat_numbers.append(booking_log.booked+i+1)
 
-                seat_name = booking_log.seat.name
+                seat_name = booking_log.seat.type
 
                 train_name = booking_log.seat.train.name
 

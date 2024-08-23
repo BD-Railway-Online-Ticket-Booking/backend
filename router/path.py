@@ -9,14 +9,14 @@ router = APIRouter(tags=["path"], prefix="/path")
 
 
 def time_difference_in_minutes(time1, time2):
-   
     datetime1 = datetime.combine(datetime.today(), time1)
     datetime2 = datetime.combine(datetime.today(), time2)
 
-    
-    time_difference = datetime2 - datetime1
+    # If time2 is earlier than time1, add a day to datetime2
+    if datetime2 < datetime1:
+        datetime2 += timedelta(days=1)
 
-   
+    time_difference = datetime2 - datetime1
     minutes_difference = time_difference.total_seconds() // 60
 
     return int(minutes_difference)
@@ -56,15 +56,16 @@ def get_path(
         print("Cache miss")
         routes = db.query(Route).filter(Route.source_id == source_id).all()
 
-        if not routes:
-            raise HTTPException(status_code=404, detail="No Path Found")
-
         result_routes = []
 
         for route in routes:
+
+            dflag = route.dflag
+
             current_route = TrainRouteSchema1(
                 train_id=route.train.id, 
-                train_name=route.train.name, 
+                train_name=route.train.name,
+                dflag=dflag,
                 path=[]
             )
             
@@ -73,6 +74,7 @@ def get_path(
                     source_name=route.source.name,
                     destination_name=route.destination.name,
                     distance=route.distance,
+                    reachtime=route.reachtime,
                     leavetime=route.leavetime,
                     duration=time_difference_in_minutes(route.leavetime, route.reachtime),
                 )
@@ -83,6 +85,7 @@ def get_path(
             current_train_id = route.train.id
             current_destination_id = route.destination_id
 
+
             track_set.add(current_destination_id)
 
             if current_destination_id == destination_id:
@@ -92,8 +95,11 @@ def get_path(
             while True:
                 next_route = db.query(Route).filter(
                     Route.source_id == current_destination_id,
-                    Route.train_id == current_train_id
+                    Route.train_id == current_train_id,
+                    Route.dflag == dflag
                 ).first()
+
+               
 
                 if not next_route:
                     break
@@ -104,6 +110,7 @@ def get_path(
                         destination_name=next_route.destination.name,
                         distance=next_route.distance,
                         leavetime=next_route.leavetime,
+                        reachtime=next_route.reachtime,
                         duration=time_difference_in_minutes(next_route.leavetime, next_route.reachtime),
                     )
                 )

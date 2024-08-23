@@ -80,6 +80,7 @@ class PathSh1(BaseModel):
     destination_name: str
     distance: int
     leavetime: time
+    reachtime:time
     duration: int
 
     class Config:
@@ -96,6 +97,7 @@ class PathSh2(BaseModel):
 class TrainRouteSchema1(BaseModel):
     train_id: int
     train_name: str
+    dflag:int
     path: List[PathSh1]
 
     class Config:
